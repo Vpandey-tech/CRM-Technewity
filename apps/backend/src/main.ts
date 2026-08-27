@@ -42,9 +42,16 @@ Running in ${isDevMode() ? "Development" : "Production"} mode
 app.get('/', checkHealthRoute)
 app.get('/check-health', checkHealthRoute)
 
+const APP_VERSION = process.env.APP_VERSION || process.env.NEXT_PUBLIC_APP_VERSION || '1.0.1'
+
+app.use((req, res, next) => {
+  res.setHeader('X-App-Version', APP_VERSION)
+  next()
+})
+
 app.use(
   cors({
-    exposedHeaders: ['Authorization', 'RefreshToken']
+    exposedHeaders: ['Authorization', 'RefreshToken', 'X-App-Version', 'x-app-version']
   })
 )
 app.use(express.json({ limit: '50mb' }))

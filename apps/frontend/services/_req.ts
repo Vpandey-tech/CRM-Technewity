@@ -37,8 +37,38 @@ instance.interceptors.request.use(
   }
 )
 
+const CLIENT_APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.1'
+let isLoggingOutForUpdate = false
+
+function handleVersionMismatch() {
+  if (isLoggingOutForUpdate) return
+  isLoggingOutForUpdate = true
+  messageError('A new version is available. Please log in again to continue.')
+  clearAllGoalieToken()
+  setTimeout(() => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/sign-in'
+    }
+  }, 1200)
+}
+
+function checkVersionHeader(headers: any): boolean {
+  if (!headers) return false
+  const serverVersion = headers['x-app-version'] || headers['X-App-Version']
+  if (serverVersion && CLIENT_APP_VERSION && serverVersion !== CLIENT_APP_VERSION) {
+    console.warn(`[App Update Detected] Client: ${CLIENT_APP_VERSION}, Server: ${serverVersion}`)
+    handleVersionMismatch()
+    return true
+  }
+  return false
+}
+
 instance.interceptors.response.use(
   function(config) {
+    if (checkVersionHeader(config.headers)) {
+      return config
+    }
+
     const headers = config.headers
     const authorization = headers.authorization
     const refreshtoken = headers.refreshtoken
@@ -59,23 +89,20 @@ instance.interceptors.response.use(
   },
   function(error) {
     const { response } = error
-    if (response && response.status === 440) {
-      if (isSessionExpired()) {
-        messageError('Your session is expired. Please login again !')
-        clearAllGoalieToken()
-        window.location.href = '/sign-in'
-        return
-      }
 
-      // window.location.href = '/sign-out';
-
-      // console.log('href', pathname)
-      // if (pathname.includes('/sign-in') || pathname.includes('/sign-up')) {
-      //   return;
-      // }
-      // window.location.href = `/sign-in?redirectUrl=${window.location.pathname}`;
+    if (response?.headers && checkVersionHeader(response.headers)) {
+      return Promise.reject(error)
     }
-    console.log('ERRIRIRIR', response)
+
+    if (response && response.status === 440) {
+      messageError('Your session has expired. Please login again!')
+      clearAllGoalieToken()
+      if (typeof window !== 'undefined') {
+        window.location.href = '/sign-in'
+      }
+      return Promise.reject(error)
+    }
+    console.log('API Error:', response?.status, response?.data)
     return Promise.reject(error)
   }
 )

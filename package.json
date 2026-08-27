@@ -1,6 +1,6 @@
 {
   "name": "kampuni",
-  "version": "0.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "prisma": {
     "seed": "ts-node ./packages/database/src/prisma/seed"

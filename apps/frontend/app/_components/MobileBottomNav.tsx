@@ -16,8 +16,13 @@ export default function MobileBottomNav() {
   const params = useParams()
   const orgSlug = (params?.orgName as string) || ''
 
-  // Do not show on auth pages or when org is not resolved
-  if (!orgSlug || pathname.includes('/sign-in') || pathname.includes('/sign-up')) {
+  // Do not show on auth pages, unresolved orgs, or active meeting rooms
+  if (
+    !orgSlug ||
+    pathname.includes('/sign-in') ||
+    pathname.includes('/sign-up') ||
+    pathname.includes('/meeting/')
+  ) {
     return null
   }
 

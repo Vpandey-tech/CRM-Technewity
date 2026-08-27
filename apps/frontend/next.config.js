@@ -9,6 +9,9 @@ const { composePlugins, withNx } = require('@nx/next')
 const nextConfig = {
   output: 'standalone',
   optimizeFonts: false,
+  env: {
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || process.env.APP_VERSION || '1.0.1'
+  },
   nx: {
     // Set this to true if you would like to use SVGR
     // See: https://github.com/gregberge/svgr

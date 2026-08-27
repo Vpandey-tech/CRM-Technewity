@@ -47,7 +47,7 @@ export default function MeetingContainer() {
   }
 
   return (
-    <div className='meeting-room fixed top-0 left-0 z-10 w-full h-full'>
+    <div className='meeting-room fixed top-0 left-0 z-50 w-full h-full bg-gray-950'>
       <LiveKitRoom
         onDisconnected={() => {
           push(`/${orgName}/meeting`)
