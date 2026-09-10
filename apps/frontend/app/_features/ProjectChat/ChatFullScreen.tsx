@@ -16,8 +16,10 @@ import {
   HiOutlineBriefcase,
   HiOutlineChartBarSquare,
   HiOutlineCpuChip,
-  HiOutlineFolder
+  HiOutlineFolder,
+  HiOutlineTrash
 } from 'react-icons/hi2'
+import { messageSuccess } from '@ui-components'
 import Link from 'next/link'
 
 interface ChatFullScreenProps {
@@ -54,7 +56,9 @@ export default function ChatFullScreen({
     isSending,
     loadMessages,
     sendMessage,
-    handleIncomingMessage
+    clearMessages,
+    handleIncomingMessage,
+    handleClearMessages
   } = useChatStore()
 
   // Real-time message listener via Pusher
@@ -65,7 +69,24 @@ export default function ChatFullScreen({
     [handleIncomingMessage]
   )
 
-  useEventProjectChat(projectId, onIncoming)
+  const onClear = useCallback(() => {
+    handleClearMessages(projectId)
+  }, [projectId, handleClearMessages])
+
+  useEventProjectChat(projectId, onIncoming, onClear)
+
+  // Clear chat handler
+  const handleClearChat = async () => {
+    setIsNavMenuOpen(false)
+    const confirmed = window.confirm(
+      'Are you sure you want to clear the chat history for this project? This cannot be undone.'
+    )
+    if (!confirmed) return
+    const success = await clearMessages(projectId)
+    if (success) {
+      messageSuccess('Chat history cleared')
+    }
+  }
 
   // Load messages when project changes
   useEffect(() => {
@@ -93,9 +114,9 @@ export default function ChatFullScreen({
   const initial = (project.name || 'P').trim().charAt(0).toUpperCase()
 
   return (
-    <div className="flex flex-col h-full w-full bg-white dark:bg-gray-950 overflow-hidden relative">
-      {/* WhatsApp-Style Chat Header */}
-      <header className="h-16 px-4 shrink-0 flex items-center justify-between border-b border-gray-200/80 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-20">
+    <div className="flex flex-col h-[100dvh] max-h-[100dvh] w-full bg-white dark:bg-gray-950 overflow-hidden relative">
+      {/* WhatsApp-Style Chat Header - Strictly fixed at the top */}
+      <header className="sticky top-0 z-30 h-16 px-4 shrink-0 flex items-center justify-between border-b border-gray-200/80 dark:border-gray-800/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-xs">
         <div className="flex items-center gap-3 min-w-0">
           {/* Mobile Back Button */}
           {onBackMobile && (
@@ -251,6 +272,16 @@ export default function ChatFullScreen({
                   </button>
                 </>
               )}
+
+              <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
+              <button
+                type="button"
+                onClick={handleClearChat}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors text-left font-medium"
+              >
+                <HiOutlineTrash className="w-4 h-4 text-red-500" />
+                <span>Clear Chat History</span>
+              </button>
             </div>
           )}
         </div>

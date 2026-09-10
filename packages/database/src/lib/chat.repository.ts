@@ -58,4 +58,10 @@ export class ChatRepository {
       }
     })
   }
+
+  async clearMessagesByProject(projectId: string) {
+    return await chatMessageModel.deleteMany({
+      where: { projectId }
+    })
+  }
 }

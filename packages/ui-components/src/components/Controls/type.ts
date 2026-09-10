@@ -49,6 +49,7 @@ type RichTextEditorBaseProps = Omit<InputBaseProps, 'onChange' | 'onEnter'> & {
   extensions?: (Node | Mark)[]
   enableRephrase?: boolean
   onRephrase?: (text: string) => Promise<string>
+  hideToolbar?: boolean
 }
 
 type TexteditorBaseProps = Omit<InputBaseProps, 'onChange' | 'onEnter'> & {

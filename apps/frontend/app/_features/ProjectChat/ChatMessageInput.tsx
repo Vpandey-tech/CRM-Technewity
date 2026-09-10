@@ -381,72 +381,74 @@ export default function ChatMessageInput({
         </div>
       )}
 
-      {/* TipTap Rich Text Composer */}
-      <div
-        className="relative"
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setTimeout(() => setIsFocused(false), 250)}
-      >
-        <Form.RichTextEditor
-          value={value}
-          onRephrase={handleRephrase}
-          onCtrlEnter={(v) => handleSubmit(v)}
-          extensions={[
-            Mention.configure({
-              HTMLAttributes: { class: 'mention' },
-              renderHTML({ options, node }) {
-                return [
-                  'span',
-                  {
-                    class: 'mention',
-                    'data-type': 'mention',
-                    'data-id': node.attrs.id,
-                    'data-label': node.attrs.label
-                  },
-                  `@${node.attrs.label ?? node.attrs.id}`
-                ]
-              },
-              suggestion: Form.getMentionSuggestion(mentionItems)
-            })
-          ]}
-        />
-      </div>
+      {/* WhatsApp-Style Clean Input Row */}
+      <div className="flex items-end gap-2 pt-1">
+        {/* Attachment Button */}
+        <button
+          type="button"
+          title="Attach file (or drag & drop)"
+          onClick={() => fileInputRef.current?.click()}
+          className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors shrink-0 mb-0.5 active:scale-95"
+        >
+          <HiPaperClip className="w-5 h-5" />
+        </button>
 
-      {/* Footer / Helper Bar */}
-      <div className="flex items-center justify-between mt-2 pt-1 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {/* Direct File Picker Button */}
-          <button
-            type="button"
-            title="Attach file (or drag & drop)"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors border border-gray-200 dark:border-gray-700 shrink-0"
-          >
-            <HiPaperClip className="w-4 h-4" />
-          </button>
-
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[11px] text-gray-400 truncate">
-              Tip: Type <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-indigo-600 dark:text-indigo-400 font-semibold">@bot</code> to invoke AI · Ctrl+Enter to send
-            </span>
-            <span
-              className={`text-[10px] font-medium ${usedPct >= 80 ? 'text-red-500 font-semibold' : 'text-gray-400'}`}
-            >
-              {usedMB} MB of {totalMB} MB used · Max {perFileMB} MB per file
-              {usedPct >= 80 && ' ⚠️ Free storage nearing limit'}
-            </span>
-          </div>
+        {/* TipTap Rich Text Composer (Sleek Input Pill without formatting toolbar) */}
+        <div
+          className="flex-1 min-w-0 bg-gray-100/90 dark:bg-gray-800/90 rounded-2xl px-3.5 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all border border-transparent dark:border-gray-700/40 [&_.mark]:hidden [&_.flex.gap-2.pt-3]:hidden [&_.form-control]:mb-0 [&_.form-control]:border-0 [&_.form-input]:border-0 [&_.form-input]:bg-transparent [&_.form-input]:p-0 [&_.ProseMirror]:outline-hidden [&_.ProseMirror]:min-h-[36px] [&_.ProseMirror]:max-h-[120px] [&_.ProseMirror]:overflow-y-auto [&_.ProseMirror]:text-xs [&_.ProseMirror]:sm:text-sm"
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 250)}
+        >
+          <Form.RichTextEditor
+            value={value}
+            hideToolbar={true}
+            enableRephrase={false}
+            onCtrlEnter={(v) => handleSubmit(v)}
+            extensions={[
+              Mention.configure({
+                HTMLAttributes: { class: 'mention' },
+                renderHTML({ options, node }) {
+                  return [
+                    'span',
+                    {
+                      class: 'mention',
+                      'data-type': 'mention',
+                      'data-id': node.attrs.id,
+                      'data-label': node.attrs.label
+                    },
+                    `@${node.attrs.label ?? node.attrs.id}`
+                  ]
+                },
+                suggestion: Form.getMentionSuggestion(mentionItems)
+              })
+            ]}
+          />
         </div>
 
-        {/* Send Button */}
-        <Button
-          size="sm"
+        {/* Send Button (Circular WhatsApp style) */}
+        <button
+          type="button"
           onClick={() => handleSubmit()}
-          loading={isSending}
-          title="Send"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 flex items-center gap-1.5 flex-shrink-0 shadow-xs"
-          leadingIcon={<HiPaperAirplane className="w-3.5 h-3.5" />}
-        />
+          disabled={isSending}
+          title="Send message"
+          className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 mb-0.5"
+        >
+          {isSending ? (
+            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <HiPaperAirplane className="w-4 h-4 translate-x-0.5" />
+          )}
+        </button>
+      </div>
+
+      {/* Footer helper */}
+      <div className="flex items-center justify-between mt-1 px-2 text-[10px] text-gray-400">
+        <span>
+          Tip: Type <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-indigo-600 dark:text-indigo-400 font-semibold">@bot</code> to invoke AI · Enter to send
+        </span>
+        <span className={usedPct >= 80 ? 'text-red-500 font-semibold' : ''}>
+          {usedMB} / {totalMB} MB used
+        </span>
       </div>
     </DropFileZone>
   )

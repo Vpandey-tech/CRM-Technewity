@@ -13,7 +13,9 @@ interface IChatStore {
   isSending: boolean
   loadMessages: (projectId: string) => Promise<void>
   sendMessage: (projectId: string, content: string, fileIds?: string[], mentionUserIds?: string[]) => Promise<boolean>
+  clearMessages: (projectId: string) => Promise<boolean>
   handleIncomingMessage: (msg: ChatMessage) => void
+  handleClearMessages: (projectId: string) => void
 }
 
 export const useChatStore = create<IChatStore>((set, get) => ({
@@ -83,6 +85,21 @@ export const useChatStore = create<IChatStore>((set, get) => ({
     }
   },
 
+  clearMessages: async (projectId: string) => {
+    try {
+      const { chatClearMessages } = await import('@/services/chat')
+      await chatClearMessages(projectId)
+      if (get().currentProjectId === projectId) {
+        set({ messages: [] })
+      }
+      return true
+    } catch (error) {
+      console.error('[Chat Store] Clear messages error:', error)
+      messageError('Failed to clear chat history')
+      return false
+    }
+  },
+
   handleIncomingMessage: (msg: ChatMessage) => {
     if (!msg || !msg.id) return
     const current = get().currentProjectId
@@ -109,6 +126,12 @@ export const useChatStore = create<IChatStore>((set, get) => ({
       } catch (err) {
         console.error('[Chat Store] Task sync dispatch error:', err)
       }
+    }
+  },
+
+  handleClearMessages: (projectId: string) => {
+    if (get().currentProjectId === projectId) {
+      set({ messages: [] })
     }
   }
 }))

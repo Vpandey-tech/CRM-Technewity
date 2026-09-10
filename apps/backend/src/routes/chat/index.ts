@@ -166,4 +166,22 @@ router.get('/project/:projectId/chat/messages', [authMiddleware, beProjectMember
   }
 })
 
+// DELETE /api/project/:projectId/chat/messages
+router.delete('/project/:projectId/chat/messages', [authMiddleware, beProjectMemberMiddleware], async (req: AuthRequest, res) => {
+  const { projectId } = req.params
+
+  try {
+    await chatRepo.clearMessagesByProject(projectId)
+    pusherTrigger('team-collab', `chat-clear-${projectId}`, { projectId })
+
+    return res.json({
+      status: 200,
+      data: { success: true }
+    })
+  } catch (error) {
+    console.error('[Chat API Clear Messages Error]', error)
+    return res.status(500).json({ status: 500, error })
+  }
+})
+
 export default router

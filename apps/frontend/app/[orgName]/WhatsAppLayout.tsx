@@ -54,8 +54,8 @@ export default function WhatsAppLayout() {
   }, [currentProjectIdFromQuery, selectedProject, projects])
 
   // Mobile view state: whether chat is open full-screen on small devices
-  // Default to true on mobile so mobile users land directly in Chat CRM
-  const [isMobileChatOpen, setIsMobileChatOpen] = useState(true)
+  // Default to false (or true only if ?p=... is present) so mobile users land on the Projects Hub default page
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(Boolean(currentProjectIdFromQuery))
 
   // Automatically select the active project in store if not yet selected
   useEffect(() => {

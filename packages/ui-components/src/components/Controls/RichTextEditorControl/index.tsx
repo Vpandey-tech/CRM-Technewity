@@ -58,6 +58,7 @@ export default function RichTextEditor({
   readOnly,
   extensions = [],
   enableRephrase = true,
+  hideToolbar = false,
   onRephrase,
   onCtrlEnter,
   onCtrlEsc,
@@ -202,7 +203,7 @@ export default function RichTextEditor({
       <div className="relative form-control-wrapper inline-flex w-full ">
         <div className="form-input">
           <EditorContent editor={editor} />
-          {!readOnly ? marks() : null}
+          {!readOnly && !hideToolbar ? marks() : null}
         </div>
       </div>
       {helper && !error ? (

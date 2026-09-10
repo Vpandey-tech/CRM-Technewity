@@ -1,4 +1,4 @@
-import { httpGet, httpPost } from './_req'
+import { httpGet, httpPost, httpDel } from './_req'
 
 export interface IChatMessagePayload {
   content: string
@@ -13,4 +13,8 @@ export const chatSendMessage = (projectId: string, payload: IChatMessagePayload)
 
 export const chatGetMessages = (projectId: string, params?: { limit?: number; before?: string }) => {
   return httpGet(`/api/project/${projectId}/chat/messages`, { params })
+}
+
+export const chatClearMessages = (projectId: string) => {
+  return httpDel(`/api/project/${projectId}/chat/messages`)
 }
