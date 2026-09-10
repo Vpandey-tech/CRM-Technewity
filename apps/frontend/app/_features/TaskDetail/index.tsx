@@ -33,7 +33,6 @@ import MultiMemberPicker from '@/components/MultiMemberPicker'
 import TimeTracker from '@/features/TimeTracker'
 import TimerHistory from '../TimeTracker/TimerHistory'
 import TimerButton from '../TimeTracker/TimerButton'
-import TaskDeleteAction from '../TaskActions/TaskDeleteAction'
 import MemberAvatar from '@/components/MemberAvatar'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -169,7 +168,6 @@ export default function TaskDetail({
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <TimerButton taskId={id} />
           </div>
-          <TaskDeleteAction id={id} />
         </div>
         <div className="mb-2 flex items-center gap-2">
           <h2
