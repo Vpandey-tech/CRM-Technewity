@@ -7,6 +7,7 @@ interface IChatStore {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
   toggleOpen: () => void
+  currentProjectId: string | null
   messages: ChatMessage[]
   isLoading: boolean
   isSending: boolean
@@ -19,15 +20,25 @@ export const useChatStore = create<IChatStore>((set, get) => ({
   isOpen: false,
   setIsOpen: (isOpen) => set({ isOpen }),
   toggleOpen: () => set((state) => ({ isOpen: !state.isOpen })),
+  currentProjectId: null,
   messages: [],
   isLoading: false,
   isSending: false,
 
   loadMessages: async (projectId: string) => {
     if (!projectId) return
-    try {
+    const prev = get().currentProjectId
+    if (prev !== projectId) {
+      set({ currentProjectId: projectId, messages: [], isLoading: true })
+    } else {
       set({ isLoading: true })
+    }
+
+    try {
       const res = await chatGetMessages(projectId, { limit: 100 })
+      // Discard results if user switched projects while request was in flight
+      if (get().currentProjectId !== projectId) return
+
       const data = res.data?.data || []
       set({ messages: data, isLoading: false })
       if (typeof window !== 'undefined' && data.some((m: any) => m.linkedTaskId)) {
@@ -35,7 +46,9 @@ export const useChatStore = create<IChatStore>((set, get) => ({
       }
     } catch (error) {
       console.error('[Chat Store] Failed to load messages:', error)
-      set({ isLoading: false })
+      if (get().currentProjectId === projectId) {
+        set({ isLoading: false })
+      }
     }
   },
 
@@ -51,7 +64,7 @@ export const useChatStore = create<IChatStore>((set, get) => ({
       })
 
       const sentMsg = res.data?.data
-      if (sentMsg) {
+      if (sentMsg && get().currentProjectId === projectId) {
         set((state) => {
           const exists = state.messages.some((m) => m.id === sentMsg.id)
           if (!exists) {
@@ -72,6 +85,12 @@ export const useChatStore = create<IChatStore>((set, get) => ({
 
   handleIncomingMessage: (msg: ChatMessage) => {
     if (!msg || !msg.id) return
+    const current = get().currentProjectId
+    // Ensure message belongs to currently active project only (strict WhatsApp-style isolation)
+    if (current && msg.projectId && msg.projectId !== current) {
+      return
+    }
+
     set((state) => {
       const idx = state.messages.findIndex((m) => m.id === msg.id)
       if (idx >= 0) {
@@ -85,7 +104,11 @@ export const useChatStore = create<IChatStore>((set, get) => ({
 
     // If message is linked to a task or is a bot completion reply, trigger board task sync
     if (typeof window !== 'undefined' && (msg.linkedTaskId || (msg as any).isBotReply)) {
-      window.dispatchEvent(new CustomEvent('crm-sync-tasks'))
+      try {
+        window.dispatchEvent(new CustomEvent('crm-sync-tasks'))
+      } catch (err) {
+        console.error('[Chat Store] Task sync dispatch error:', err)
+      }
     }
   }
 }))

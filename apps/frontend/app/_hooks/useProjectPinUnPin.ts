@@ -37,7 +37,7 @@ export const useProjectPinUnpin = () => {
 
   const extractPinNUnpinProjects = (
     projects: Project[],
-    pinned: PinnedProjectSetting[]
+    pinned?: PinnedProjectSetting[]
   ) => {
     const unpin: Project[] = []
     const pin: Project[] = []
@@ -48,8 +48,11 @@ export const useProjectPinUnpin = () => {
         pin
       }
 
+    const pinnedList = Array.isArray(pinned) ? pinned : []
+
     projects.forEach(p => {
-      if (pinned.find(pin => pin.id === p.id)) {
+      if (!p) return
+      if (pinnedList.some(item => item && item.id === p.id)) {
         pin.push(p)
       } else {
         unpin.push(p)

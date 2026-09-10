@@ -6,7 +6,8 @@ import {
   mdTaskStatusGetById,
   mdTaskStatusUpdate,
   mdTaskStatusDel,
-  mdTaskUpdateMany
+  mdTaskUpdateMany,
+  mdTaskReassignStatus
 } from '@database'
 import { StatusType, TaskStatus } from '@prisma/client'
 import { CKEY, delCache, findNDelCaches, getJSONCache, setJSONCache } from '../../lib/redis'
@@ -68,24 +69,56 @@ router.get('/project/status/:projectId', async (req: AuthRequest, res) => {
   const projectId = req.params.projectId
   const key = [CKEY.PROJECT_STATUS, projectId]
 
-  const cached = await getJSONCache(key)
+  try {
+    const cached = await getJSONCache(key)
 
-  if (cached) {
-    console.log('return status cached 2')
-    return res.json({
-      status: 200,
-      data: cached
-    })
-  }
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      console.log('return status cached 2')
+      return res.json({
+        status: 200,
+        data: cached
+      })
+    }
 
-  mdTaskStatusGetByProjectId(projectId)
-    .then(result => {
+    let result = await mdTaskStatusGetByProjectId(projectId)
+    if (!result || !result.length) {
+      console.log('Project has no statuses, auto-seeding default statuses for project:', projectId)
+      try {
+        await mdTaskStatusAdd({
+          projectId,
+          name: 'To Do',
+          color: '#64748b',
+          order: 0,
+          type: StatusType.TODO
+        })
+        await mdTaskStatusAdd({
+          projectId,
+          name: 'In Progress',
+          color: '#3b82f6',
+          order: 1,
+          type: StatusType.INPROCESS
+        })
+        await mdTaskStatusAdd({
+          projectId,
+          name: 'Done',
+          color: '#22c55e',
+          order: 2,
+          type: StatusType.DONE
+        })
+        result = await mdTaskStatusGetByProjectId(projectId)
+      } catch (seedErr) {
+        console.error('Error auto-seeding statuses:', seedErr)
+      }
+    }
+
+    if (result && result.length) {
       setJSONCache(key, result)
-      res.json({ status: 200, data: result })
-    })
-    .catch(err => {
-      console.log(err)
-    })
+    }
+    return res.json({ status: 200, data: result || [] })
+  } catch (err) {
+    console.error('get status error', err)
+    return res.json({ status: 500, data: [] })
+  }
 })
 
 router.put('/project/status', async (req: AuthRequest, res) => {
@@ -179,7 +212,7 @@ router.delete('/project/status/:id', async (req: AuthRequest, res) => {
         remainingStatuses.find(s => s.type === StatusType.TODO) || remainingStatuses[0]
 
       // Reassign all orphaned tasks to fallback status
-      await mdTaskUpdateMany([], { projectId })
+      await mdTaskReassignStatus(projectId, id, fallbackStatus.id)
     }
 
     const result = await mdTaskStatusDel(id)

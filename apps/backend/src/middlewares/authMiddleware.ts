@@ -58,7 +58,18 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     if (validRefreshToken) {
       console.log('token is invalid, but refresh token is valid');
       console.log('re-generate new token vs refresh token');
-      const user = decodeToken(authorization) as JWTPayload;
+      let user: JWTPayload | null = null;
+      try {
+        user = decodeToken(authorization) as JWTPayload;
+      } catch (e) {
+        user = null;
+      }
+
+      if (!user || !user.email) {
+        console.log('cannot decode user from authorization token');
+        return res.status(440).end();
+      }
+
       const decodedRefresh = decodeToken(refreshToken) as { email: string; rememberMe?: boolean };
       const rememberMe = decodedRefresh?.rememberMe ?? false;
 

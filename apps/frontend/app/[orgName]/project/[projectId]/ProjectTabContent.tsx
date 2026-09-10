@@ -20,7 +20,8 @@ const Calendar = dynamic(() => import('./calendar'), {
   loading: () => <ProjectContentLoading />
 })
 const Board = dynamic(() => import('./board'), {
-  loading: () => <ProjectContentLoading />
+  loading: () => <ProjectContentLoading />,
+  ssr: false
 })
 
 const Vision = dynamic(() => import('@/features/Project/Vision'), {
@@ -101,7 +102,32 @@ export default function ProjectTabContent() {
     return ignored.includes(mode || '')
   }, [mode])
 
-  const type = projectViewMap.get(mode || '') || 'NONE'
+  const { views } = useProjectViewStore()
+
+  const type = useMemo(() => {
+    if (mode) {
+      const lower = mode.toLowerCase()
+      if (lower === 'board') return ProjectViewType.BOARD
+      if (lower === 'list') return ProjectViewType.LIST
+      if (lower === 'calendar') return ProjectViewType.CALENDAR
+      if (lower === 'grid') return ProjectViewType.GRID
+      if (lower === 'dashboard') return ProjectViewType.DASHBOARD
+      if (lower === 'team') return ProjectViewType.TEAM
+      if (lower === 'goal') return ProjectViewType.GOAL
+
+      const mapped = projectViewMap.get(mode)
+      if (mapped) return mapped
+      const matched = views.find(v => v.id === mode)
+      if (matched) return matched.type
+    }
+
+    if (views.length > 0) {
+      const boardView = views.find(v => v.type === ProjectViewType.BOARD)
+      return boardView ? boardView.type : views[0].type
+    }
+
+    return ProjectViewType.BOARD
+  }, [mode, views, counter])
 
   const isView = useCallback((t: ProjectViewType) => !isIgnored() && type === t, [isIgnored, type])
   const isNotBoard = !isView(ProjectViewType.BOARD)
@@ -114,7 +140,7 @@ export default function ProjectTabContent() {
   const view = useMemo(() => {
     return <div className={cls} style={{ height: 'calc(100dvh - 83px)' }}>
       <ProjectTabContentLoading />
-      <AnimateView visible={type === 'NONE' && !isIgnored()}>
+      <AnimateView visible={(type as string) === 'NONE' && !isIgnored()}>
         <TaskList />
       </AnimateView>
       <AnimateView visible={isView(ProjectViewType.BOARD)}>

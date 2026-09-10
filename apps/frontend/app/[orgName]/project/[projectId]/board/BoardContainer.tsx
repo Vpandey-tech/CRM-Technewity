@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ETaskFilterGroupByType } from '@/features/TaskFilter/context'
 import './style.css'
 import { DragDropContext, DropResult, Droppable } from 'react-beautiful-dnd'
@@ -14,9 +14,12 @@ import { useBoardRealtimeUpdate } from './useBoardRealtimeUpdate'
 import { triggerEventMoveTaskToOtherBoard } from '@/events/useEventMoveTaskToOtherBoard'
 import useTaskFilterContext from '@/features/TaskFilter/useTaskFilterContext'
 
+import { useProjectStatusStore } from '@/store/status'
+
 export default function BoardContainer() {
   const { projectId } = useUrl()
-  const { groupByItems, filter, groupBy } = useTaskFilterContext()
+  const { groupByItems, filter, groupBy, groupByLoading } = useTaskFilterContext()
+  const { statuses } = useProjectStatusStore()
   const {
     dragColumnToAnotherPosition,
     dragItemToAnotherPosition,
@@ -27,6 +30,12 @@ export default function BoardContainer() {
   const [activeMobileTab, setActiveMobileTab] = useState<string>(
     groupByItems[0]?.id || ''
   )
+
+  useEffect(() => {
+    if (!activeMobileTab && groupByItems.length > 0) {
+      setActiveMobileTab(groupByItems[0]?.id || '')
+    }
+  }, [groupByItems, activeMobileTab])
 
   useBoardRealtimeUpdate()
 
@@ -91,36 +100,50 @@ export default function BoardContainer() {
     return true
   })
 
-  const currentTab = activeMobileTab || visibleGroups[0]?.id || ''
+  // Fallback to raw statuses if groupByItems has not yet settled, guaranteeing TODO/INPROGRESS/CLOSED columns are never hidden
+  const effectiveGroups = visibleGroups.length > 0 ? visibleGroups : (
+    groupBy === ETaskFilterGroupByType.STATUS && statuses.length > 0
+      ? statuses.map(s => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          items: []
+        }))
+      : []
+  )
+
+  const currentTab = activeMobileTab || effectiveGroups[0]?.id || ''
 
   return (
     <div className="w-full flex-1 flex flex-col min-w-0 overflow-hidden">
       {/* Mobile Stage Selector Tabs (< md) */}
-      <div className="block md:hidden px-4 py-3 border-b bg-white dark:bg-gray-900 dark:border-gray-800">
-        <Tabs.Root value={currentTab} onValueChange={setActiveMobileTab}>
-          <Tabs.List className="flex gap-2 overflow-x-auto mobile-stage-tabs pb-1">
-            {visibleGroups.map(group => (
-              <Tabs.Trigger
-                key={group.id}
-                value={group.id}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors min-h-[44px] flex items-center gap-2 ${
-                  currentTab === group.id
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}>
-                <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: group.color || '#6366f1' }}
-                />
-                {group.name}
-                <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 dark:bg-black/20">
-                  {group.items?.length || 0}
-                </span>
-              </Tabs.Trigger>
-            ))}
-          </Tabs.List>
-        </Tabs.Root>
-      </div>
+      {effectiveGroups.length > 0 && (
+        <div className="block md:hidden px-4 py-3 border-b bg-white dark:bg-gray-900 dark:border-gray-800">
+          <Tabs.Root value={currentTab} onValueChange={setActiveMobileTab}>
+            <Tabs.List className="flex gap-2 overflow-x-auto mobile-stage-tabs pb-1">
+              {effectiveGroups.map(group => (
+                <Tabs.Trigger
+                  key={group.id}
+                  value={group.id}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors min-h-[44px] flex items-center gap-2 ${
+                    currentTab === group.id
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}>
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: group.color || '#6366f1' }}
+                  />
+                  {group.name}
+                  <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 dark:bg-black/20">
+                    {group.items?.length || 0}
+                  </span>
+                </Tabs.Trigger>
+              ))}
+            </Tabs.List>
+          </Tabs.Root>
+        </div>
+      )}
 
       {/* Main Board View: Tabbed column on mobile (< md), horizontal scroll on desktop (>= md) */}
       <DragDropContext onDragEnd={onDragEnd}>
@@ -130,7 +153,7 @@ export default function BoardContainer() {
               className="board-container flex-1 overflow-x-auto overflow-y-auto custom-scrollbar p-2 md:p-4 flex flex-col md:flex-row gap-4 w-full"
               {...provided.droppableProps}
               ref={provided.innerRef}>
-              {visibleGroups.map((group, groupIndex) => {
+              {effectiveGroups.map((group, groupIndex) => {
                 const isMobileVisible = currentTab === group.id
                 return (
                   <div
@@ -150,4 +173,5 @@ export default function BoardContainer() {
     </div>
   )
 }
+
 

@@ -125,6 +125,7 @@ export default function TaskFilter({
                 }}
                 width={180}
                 options={[
+                  { id: 'any', title: '📆 All' },
                   { id: 'today', title: '📆 Today' },
                   { id: 'yesterday', title: '📆 Yesterday' },
                   { id: 'tomorrow', title: '📆 Tomorrow' },

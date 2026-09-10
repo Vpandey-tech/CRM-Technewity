@@ -14,6 +14,8 @@ import GlobalTimerDisplay from '@/features/TimeTracker/GlobalTimerDisplay'
 
 import MobileBottomNav from '../_components/MobileBottomNav'
 
+import { usePathname, useParams } from 'next/navigation'
+
 // NOTE: do not move these following function inside ProjectLayout
 // cuz it causes a re-render to the entire component
 // why ? because it contains useParams inside, and this will triggered as url updated
@@ -24,9 +26,30 @@ function PrefetchOrgData() {
 
 function OrgDetailContent({ children }: { children: ReactNode }) {
   const { orgId } = useGlobalDataStore()
+  const pathname = usePathname()
+  const params = useParams()
+  const orgName = (params?.orgName as string) || ''
 
   if (!orgId) {
     return <Loading className='h-screen w-screen items-center justify-center' title='Fetching organization data ...' />
+  }
+
+  // Check if we are on the org root or chat view (WhatsApp CRM style)
+  const segments = pathname ? pathname.split('/').filter(Boolean) : []
+  const isWhatsAppView =
+    segments.length === 1 ||
+    (segments.length === 2 && segments[1] === 'chat')
+
+  if (isWhatsAppView) {
+    return (
+      <div className="h-screen w-full overflow-hidden bg-white dark:bg-gray-950 relative">
+        <PrefetchOrgData />
+        <EventUserProjectUpdate />
+        <Upsale />
+        {children}
+        <GlobalTimerDisplay />
+      </div>
+    )
   }
 
   return (

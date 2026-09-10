@@ -9,6 +9,8 @@ import ListCreateTask from './ListCreateTask'
 import TaskMultipleActions from '@/features/TaskMultipleActions'
 import ListRow from './ListRow'
 import useTaskFilterContext from '@/features/TaskFilter/useTaskFilterContext'
+import { ITaskFilterGroupbyItem } from '@/features/TaskFilter/context'
+import { useProjectStatusStore } from '../../../../../store/status'
 
 export default function ListMode() {
   const {
@@ -20,11 +22,24 @@ export default function ListMode() {
     isGroupbyStatus
   } = useTaskFilterContext()
 
+  const { statuses } = useProjectStatusStore()
   const { tasks, taskLoading } = useTaskStore()
+
+  const effectiveGroups: ITaskFilterGroupbyItem[] = groupByItems.length > 0 ? groupByItems : (
+    isGroupbyStatus && statuses.length > 0
+      ? statuses.map(s => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          icon: '',
+          items: [] as string[]
+        }))
+      : []
+  )
 
   return (
     <div className="list-view-container pb-[300px]">
-      {groupByItems.map(group => {
+      {effectiveGroups.map(group => {
         return (
           <div
             className="bg-white dark:bg-gray-900 mb-4 rounded-md border dark:border-gray-800 mx-4 relative mt-4"

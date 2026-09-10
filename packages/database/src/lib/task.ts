@@ -307,3 +307,15 @@ export const mdTaskUpdate = async (data: Partial<Task>) => {
     data: rest
   })
 }
+
+export const mdTaskReassignStatus = async (projectId: string, fromStatusId: string, toStatusId: string) => {
+  return taskModel.updateMany({
+    where: {
+      projectId,
+      taskStatusId: fromStatusId
+    },
+    data: {
+      taskStatusId: toStatusId
+    }
+  })
+}

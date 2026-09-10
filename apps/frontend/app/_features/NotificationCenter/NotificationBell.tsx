@@ -1,5 +1,7 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNotificationStore } from '@/store/notification'
+import { useUser } from '@auth-client'
+import { useEventNotification } from '@/events/useEventNotification'
 import { HiBell, HiCheck, HiOutlineSparkles } from 'react-icons/hi2'
 import { format } from 'date-fns'
 import Link from 'next/link'
@@ -9,8 +11,18 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
-  const { notifications, unreadCount, loadNotifications, markAsRead, markAllAsRead } =
+  const { user } = useUser()
+  const { notifications, unreadCount, loadNotifications, markAsRead, markAllAsRead, addNotification } =
     useNotificationStore()
+
+  const handleIncomingNotification = useCallback(
+    (notif: any) => {
+      addNotification(notif)
+    },
+    [addNotification]
+  )
+
+  useEventNotification(user?.id, handleIncomingNotification)
 
   useEffect(() => {
     loadNotifications()

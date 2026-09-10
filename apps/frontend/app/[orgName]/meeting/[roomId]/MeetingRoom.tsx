@@ -84,11 +84,24 @@ export default function MeetingContainer() {
 }
 
 function MeetingRoomInfo() {
-  const { roomId, orgID } = useParams()
+  const params = useParams()
+  const roomId = params?.roomId as string
+  const orgName = (params?.orgName || params?.orgID) as string
   const [visible, setVisible] = useState(true)
+  const [link, setLink] = useState('')
 
-  const getLink = () => {
-    return `${window.location.protocol}//${window.location.host}/${orgID}/meeting/${roomId}`
+  useEffect(() => {
+    if (typeof window !== 'undefined' && orgName && roomId) {
+      setLink(`${window.location.protocol}//${window.location.host}/${orgName}/meeting/${roomId}`)
+    }
+  }, [orgName, roomId])
+
+  const copyLink = () => {
+    const fullLink = link || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/${orgName}/meeting/${roomId}` : '')
+    if (fullLink) {
+      copyToClipboard(fullLink)
+      messageSuccess('Copied to clipboard already !')
+    }
   }
 
   return (
@@ -109,12 +122,9 @@ function MeetingRoomInfo() {
           <p>Share this link with others you want in the meeting</p>
 
           <div className="relative">
-            <Form.Input readOnly value={getLink()} className="w-full pr-10" />
+            <Form.Input readOnly value={link} className="w-full pr-10" />
             <HiOutlineDuplicate
-              onClick={() => {
-                copyToClipboard(getLink())
-                messageSuccess('Copied to clipboard already !')
-              }}
+              onClick={copyLink}
               className="absolute top-2 right-2 p-1 w-6 h-6 hover:border-gray-900 cursor-pointer bg-white dark:bg-gray-800 border rounded-md shadow"
             />
           </div>

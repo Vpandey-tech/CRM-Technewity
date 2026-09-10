@@ -1,3 +1,6 @@
+import WhatsAppLayout from './WhatsAppLayout'
+
 export default function Page() {
-  return <div>Page organization detail</div>
+  return <WhatsAppLayout />
 }
+

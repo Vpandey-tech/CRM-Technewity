@@ -46,9 +46,17 @@ Thumbs.db
 .env.vir
 .env
 pm2.json
-
 logs/*
 .vercel
 
 .cursor/*
 crm-technewity-*.json
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Turbo
+.turbo
+
+# Temporary logs
+test.txt

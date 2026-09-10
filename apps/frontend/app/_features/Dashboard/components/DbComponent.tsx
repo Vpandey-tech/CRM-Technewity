@@ -2,6 +2,7 @@ import { DashboardComponent, DashboardComponentType } from '@prisma/client'
 import DbCompSummary from './DbCompSummary'
 import DbCompColumn from './DbCompColumn'
 import { DbCompBurnChart } from './DbCompBurnChart'
+import DbCompTeamActivity from './DbCompTeamActivity'
 import './dboard-component.css'
 
 export default function DbComponent({
@@ -22,6 +23,9 @@ export default function DbComponent({
       ) : null}
       {type === DashboardComponentType.BURNDOWN || type === DashboardComponentType.BURNUP ? (
         <DbCompBurnChart id={id} title={title || ''} config={configJson} type={type} />
+      ) : null}
+      {type === DashboardComponentType.LIST || type === DashboardComponentType.LISTTAB ? (
+        <DbCompTeamActivity id={id} title={title || ''} config={configJson} />
       ) : null}
     </>
   )

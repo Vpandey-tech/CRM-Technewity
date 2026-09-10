@@ -22,7 +22,7 @@ export default function ProjectViewList({ onUpdate }: { onUpdate: (id: string) =
   const { views } = useProjectViewList()
 
   const clickOnView = (name: string) => {
-    push(`${params.orgName}/project/${params.projectId}?mode=${name}`)
+    push(`/${params.orgName}/project/${params.projectId}?mode=${name}`)
   }
 
   return (
@@ -33,7 +33,10 @@ export default function ProjectViewList({ onUpdate }: { onUpdate: (id: string) =
         </div>
       ) : null}
       {views.map((view, index) => {
-        const active = mode === view.id
+        const active =
+          mode === view.id ||
+          (!mode && index === 0) ||
+          (mode?.toLowerCase() === view.type.toLowerCase())
         const { icon, onlyMe } = view
 
         return (

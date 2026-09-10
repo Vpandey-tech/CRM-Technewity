@@ -42,12 +42,12 @@ export default function ProjectView() {
           setProjectViewId(id)
         }} />
 
-        <HasRole projectRoles={['MANAGER', 'LEADER']}>
+        <HasRole projectRoles={['MANAGER', 'LEADER', 'MEMBER']}>
           <VerticalSeparator />
           <ProjectViewCreate />
         </HasRole>
 
-        <HasRole projectRoles={['MANAGER', 'LEADER']}>
+        <HasRole projectRoles={['MANAGER', 'LEADER', 'MEMBER']}>
           <ProjectViewUpdate id={projectViewId} />
         </HasRole>
       </div>

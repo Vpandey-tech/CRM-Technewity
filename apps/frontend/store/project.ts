@@ -38,7 +38,7 @@ export const useProjectStore = create<ProjectState>(set => ({
   addPinnedProjects: (data: PinnedProjectSetting[]) =>
     set(
       produce((state: ProjectState) => {
-        state.pinnedProjects = data
+        state.pinnedProjects = Array.isArray(data) ? data : []
       })
     ),
   pin: (id: string) =>

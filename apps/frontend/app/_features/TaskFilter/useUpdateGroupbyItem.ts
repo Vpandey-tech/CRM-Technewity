@@ -10,13 +10,13 @@ import { useTaskStore } from '@/store/task'
 import { useParams } from 'next/navigation'
 import { useContext, useEffect, useRef } from 'react'
 
-let timeout = 0
 export default function useUpdateGroupbyItem() {
   const { statuses } = useProjectStatusStore()
   const { members } = useMemberStore()
   const { tasks } = useTaskStore()
   const { projectId } = useParams()
 
+  const timeoutRef = useRef<any>(null)
   const oldGroupByType = useRef('')
   const oldStatusList = useRef(statuses)
   const oldTaskList = useRef(tasks)
@@ -189,17 +189,21 @@ export default function useUpdateGroupbyItem() {
     setGroupbyItems(groupItems)
   }
 
-  // Only update groupByItems as groupBy option changed
-  // keep logic simple
   useEffect(() => {
-    if (timeout) {
-      clearTimeout(timeout)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
     }
 
-    timeout = setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       updateGroupbyItems()
       oldGroupByType.current = filter.groupBy
-    }, 200) as unknown as number
+    }, 150)
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
   }, [
     filter.groupBy,
     JSON.stringify(members),
@@ -212,32 +216,19 @@ export default function useUpdateGroupbyItem() {
   }, [filter.statusIds.toString()])
 
   useEffect(() => {
-    if (oldStatusList.current) {
-      const oldStatusArr = oldStatusList.current
-
-      // When page reload, the status list is empty
-      // after a few seconds it will be fetched from servers
-      // so we need to update the groupByItems
-      if (!oldStatusArr.length && statuses.length) {
-        updateGroupbyItems()
-      }
+    if (statuses && statuses.length > 0) {
+      updateGroupbyItems()
     }
-  }, [statuses])
+  }, [statuses.length])
 
   useEffect(() => {
-    if (oldTaskList.current) {
-      const oldTaskArr = oldTaskList.current
-
-      // When page reload, the task list is empty
-      // after a few seconds it will be fetched from servers
-      // so we need to update the groupByItems
-      if (!oldTaskArr.length && tasks.length) {
-        updateGroupbyItems()
-      }
+    if (tasks && tasks.length > 0) {
+      updateGroupbyItems()
     }
-  }, [tasks])
+  }, [tasks.length])
 
   useEffect(() => {
     updateGroupbyItems()
-  }, [projectId, tasks])
+  }, [projectId])
 }
+

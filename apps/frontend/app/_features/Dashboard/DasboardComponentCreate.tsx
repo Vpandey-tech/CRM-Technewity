@@ -55,6 +55,12 @@ const charts: IChartType[] = [
     desc: 'Display the total amount of task by status',
     icon: '🚦'
   },
+  {
+    type: DashboardComponentType.LIST,
+    title: 'Team Live Activity',
+    desc: 'See live who is working on what task in real-time',
+    icon: '👥'
+  },
   // {
   //   type: DashboardComponentType.BURNDOWN,
   //   title: 'Burndown Chart',

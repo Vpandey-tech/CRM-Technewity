@@ -55,7 +55,7 @@ export default function ChatDrawer() {
       />
 
       {/* Drawer Container: Full screen on mobile (<640px), sidebar drawer on desktop (>=640px) */}
-      <div className="relative z-10 w-full h-full sm:h-auto sm:max-w-md md:max-w-lg bg-white dark:bg-gray-900 shadow-2xl flex flex-col sm:border-l border-gray-200 dark:border-gray-800">
+      <div className="relative z-10 w-full h-full sm:h-full sm:max-w-md md:max-w-lg bg-white dark:bg-gray-900 shadow-2xl flex flex-col sm:border-l border-gray-200 dark:border-gray-800">
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">

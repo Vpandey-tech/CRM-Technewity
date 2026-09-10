@@ -9,6 +9,7 @@ import {
   HiOutlineChartBar,
   HiOutlineVideoCamera,
   HiOutlineStar,
+  HiOutlineChatBubbleLeftRight
 } from 'react-icons/hi2'
 
 export default function MobileBottomNav() {
@@ -16,12 +17,15 @@ export default function MobileBottomNav() {
   const params = useParams()
   const orgSlug = (params?.orgName as string) || ''
 
-  // Do not show on auth pages, unresolved orgs, or active meeting rooms
+  // Do not show on auth pages, unresolved orgs, active meeting rooms, or WhatsApp full-screen view
   if (
     !orgSlug ||
     pathname.includes('/sign-in') ||
     pathname.includes('/sign-up') ||
-    pathname.includes('/meeting/')
+    pathname.includes('/meeting/') ||
+    pathname === `/${orgSlug}` ||
+    pathname === `/${orgSlug}/` ||
+    pathname === `/${orgSlug}/chat`
   ) {
     return null
   }
@@ -29,6 +33,11 @@ export default function MobileBottomNav() {
   const basePath = `/${orgSlug}`
 
   const navItems = [
+    {
+      label: 'Chats',
+      href: `${basePath}`,
+      icon: HiOutlineChatBubbleLeftRight,
+    },
     {
       label: 'My Works',
       href: `${basePath}/my-works`,
@@ -43,16 +52,6 @@ export default function MobileBottomNav() {
       label: 'Report',
       href: `${basePath}/report`,
       icon: HiOutlineChartBar,
-    },
-    {
-      label: 'Meetings',
-      href: `${basePath}/meeting`,
-      icon: HiOutlineVideoCamera,
-    },
-    {
-      label: 'Favorites',
-      href: `${basePath}/favorites`,
-      icon: HiOutlineStar,
     },
   ]
 

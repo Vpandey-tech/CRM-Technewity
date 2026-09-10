@@ -84,35 +84,51 @@ export default function MeetingContainer() {
 function MeetingRoomInfo() {
   const { roomId, orgName } = useParams()
   const [visible, setVisible] = useState(true)
+  const [link, setLink] = useState('')
 
-  const getLink = () => {
-    return `${window.location.protocol}//${window.location.host}/${orgName}/meeting/${roomId}`
+  useEffect(() => {
+    if (typeof window !== 'undefined' && orgName && roomId) {
+      setLink(`${window.location.protocol}//${window.location.host}/${orgName}/meeting/${roomId}`)
+    }
+  }, [orgName, roomId])
+
+  const copyLink = () => {
+    const fullLink = link || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/${orgName}/meeting/${roomId}` : '')
+    if (fullLink) {
+      copyToClipboard(fullLink)
+      messageSuccess('Copied to clipboard already !')
+    }
   }
 
-  return <div className={`fixed bottom-5 left-5 bg-white rounded-md shadow-lg p-4 text-gray-600 text-sm`}>
-    <HiOutlineInformationCircle onClick={() => {
-      setVisible(true)
-    }} className={`cursor-pointer ${visible ? 'hidden' : ''}`} />
-    <div className={`relative w-[400px] ${visible ? '' : 'hidden'}`}>
-      <HiOutlineX className='cursor-pointer w-7 h-7 p-1 rounded-md absolute top-1 right-1 border bg-gray-100' onClick={() => setVisible(false)} />
-      <h2 className='text-2xl text-gray-800 mb-2'>Your meeting is ready</h2>
-      <div className='space-y-2'>
-        <p>Share this link with others you want in the meeting</p>
+  return (
+    <div className={`fixed bottom-5 left-5 bg-white rounded-md shadow-lg p-4 text-gray-600 text-sm z-50`}>
+      <HiOutlineInformationCircle
+        onClick={() => {
+          setVisible(true)
+        }}
+        className={`cursor-pointer ${visible ? 'hidden' : ''}`}
+      />
+      <div className={`relative w-[400px] ${visible ? '' : 'hidden'}`}>
+        <HiOutlineX
+          className='cursor-pointer w-7 h-7 p-1 rounded-md absolute top-1 right-1 border bg-gray-100'
+          onClick={() => setVisible(false)}
+        />
+        <h2 className='text-2xl text-gray-800 mb-2'>Your meeting is ready</h2>
+        <div className='space-y-2'>
+          <p>Share this link with others you want in the meeting</p>
 
-        <div className='relative'>
-          <Form.Input readOnly value={getLink()} />
-          <HiOutlineDuplicate
-            onClick={() => {
-              copyToClipboard(getLink())
-              messageSuccess('Copied to clipboard already !')
-            }}
-            className='absolute top-2 right-2 p-1 w-6 h-6 hover:border-gray-900 cursor-pointer bg-white border rounded-md shadow' />
+          <div className='relative'>
+            <Form.Input readOnly value={link} />
+            <HiOutlineDuplicate
+              onClick={copyLink}
+              className='absolute top-2 right-2 p-1 w-6 h-6 hover:border-gray-900 cursor-pointer bg-white border rounded-md shadow'
+            />
+          </div>
+          <p>People who use this meeting link must get your permission before they can join </p>
         </div>
-        <p>People who use this meeting link must get your permission before they can join </p>
       </div>
     </div>
-  </div>
-
+  )
 }
 
 function MyVideoConference() {

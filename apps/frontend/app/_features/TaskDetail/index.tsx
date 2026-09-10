@@ -125,9 +125,7 @@ export default function TaskDetail({
         return
       }
 
-      onSubmit(mergedValues, () => {
-        console.log('called')
-      })
+      onSubmit(mergedValues, () => {})
       setLoading(false)
     }
   })

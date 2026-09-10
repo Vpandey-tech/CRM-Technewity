@@ -53,16 +53,22 @@ export const useTodoCounter = () => {
 
     if (projects && projects.length) {
       const projectIds = projects.map(p => p.id)
-      taskCounterByUser(projectIds, abortController.signal).then(res => {
-        const { data } = res.data
+      taskCounterByUser(projectIds, abortController.signal)
+        .then(res => {
+          const { data } = res?.data || {}
 
-        if (!data || !data.length) return
+          if (!data || !data.length) return
 
-        const dataCounters = data as ITodoCounterResult[]
+          const dataCounters = data as ITodoCounterResult[]
 
-        cacheTodoCounter(dataCounters)
-        updateTodoCounter(dataCounters)
-      })
+          cacheTodoCounter(dataCounters)
+          updateTodoCounter(dataCounters)
+        })
+        .catch(err => {
+          // Silently ignore intentional request cancellations
+          if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return
+          console.error('[useTodoCounter error]', err)
+        })
     }
 
     return () => {

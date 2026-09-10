@@ -6,13 +6,13 @@ import { AuthRequest } from '../../types'
 import { pusherTrigger } from '../../lib/pusher-server'
 import { getBotQueueInstance } from '../../queues/Bot'
 
-const router = Router()
+const router = Router({ mergeParams: true })
 const chatRepo = new ChatRepository()
 
 // Helper to extract mention user IDs from TipTap mention HTML
 const extractMentionIdsFromHtml = (html: string): string[] => {
   const ids: string[] = []
-  const regex = /data-id="([a-f0-9]+)"/gi
+  const regex = /data-id="([^"]+)"/gi
   let match
   while ((match = regex.exec(html)) !== null) {
     if (match[1] && !ids.includes(match[1])) {
@@ -87,18 +87,20 @@ router.post('/project/:projectId/chat/message', [authMiddleware, beProjectMember
 
     // Check if bot should be triggered:
     // 1. Bot user explicitly @mentioned in mentionUserIds
-    // 2. Starts with /task, /bug, /email slash command
+    // 2. Starts with a supported slash command (/task, /bug, /feature, /improvement, /report, /schedule, /email)
     // 3. Mentions "@bot" or "@ai" in raw text
     const isBotMentioned =
       (botUserId && combinedMentionIds.includes(botUserId)) ||
-      /^\s*\/(task|bug|email)\b/i.test(content) ||
+      /^\s*\/(?:task|bug|feature|newfeature|improvement|improve|enhance|report|schedule|recurring|cron|email|mail)\b/i.test(content) ||
       /@(?:bot|ai)\b/i.test(content)
 
     // Detect slash command if any
     let commandType: ChatCommandType | null = null
     if (/^\s*\/task\b/i.test(content)) commandType = ChatCommandType.TASK
-    if (/^\s*\/bug\b/i.test(content)) commandType = ChatCommandType.BUG
-    if (/^\s*\/email\b/i.test(content)) commandType = ChatCommandType.EMAIL
+    else if (/^\s*\/bug\b/i.test(content)) commandType = ChatCommandType.BUG
+    else if (/^\s*\/(?:feature|newfeature|improvement|improve|enhance)\b/i.test(content)) commandType = ChatCommandType.TASK
+    else if (/^\s*\/(?:email|mail)\b/i.test(content)) commandType = ChatCommandType.EMAIL
+    else if (/^\s*\/(?:report|schedule|recurring|cron)\b/i.test(content)) commandType = ChatCommandType.GENERAL
 
     const initialStatus = isBotMentioned ? ChatMessageStatus.PENDING : ChatMessageStatus.SENT
 

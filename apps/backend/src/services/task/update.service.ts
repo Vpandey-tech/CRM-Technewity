@@ -3,6 +3,7 @@ import ActivityService from '../activity.service'
 import { CKEY, findNDelCaches } from '../../lib/redis'
 import {
   ProjectSettingRepository,
+  NotificationRepository,
   mdProjectGet,
   mdTaskGetOne,
   mdTaskStatusWithDoneType,
@@ -11,6 +12,7 @@ import {
 import { deleteTodoCounter } from '..//todo.counter'
 import { genFrontendUrl } from '../../lib/url'
 import { notifyToWebUsers } from '../../lib/buzzer'
+import { pusherTrigger } from '../../lib/pusher-server'
 import InternalErrorException from '../../exceptions/InternalErrorException'
 import { serviceGetStatusById } from '../status'
 import { serviceGetProjectById } from '../project'
@@ -20,12 +22,14 @@ import TaskPusherJob from '../../jobs/task.pusher.job'
 export default class TaskUpdateService {
   activityService: ActivityService
   projectSettingRepo: ProjectSettingRepository
+  notifRepo: NotificationRepository
   taskReminderJob: TaskReminderJob
   taskSyncJob: TaskPusherJob
 
   constructor() {
     this.activityService = new ActivityService()
     this.projectSettingRepo = new ProjectSettingRepository()
+    this.notifRepo = new NotificationRepository()
     this.taskReminderJob = new TaskReminderJob()
     this.taskSyncJob = new TaskPusherJob()
   }
@@ -276,6 +280,22 @@ export default class TaskUpdateService {
       icon: pinfo.icon,
       deep_link: taskLink
     })
+
+    for (const watcherId of watcherList) {
+      try {
+        const notif = await this.notifRepo.createNotification({
+          organizationId: pinfo.organizationId,
+          userId: watcherId,
+          type: 'STATUS_CHANGED',
+          title: `${pinfo.name} - #status-changed`,
+          body: `Changed to ${newStatus.name} on "${task.title}"`,
+          link: `/${pinfo.organizationId}/project/${task.projectId}?mode=task&taskId=${task.id}`
+        })
+        pusherTrigger('team-collab', `notification-${watcherId}`, notif)
+      } catch (err) {
+        console.error('Failed to create notification', err)
+      }
+    }
   }
 
   private async _sendNotificationAsProgressChanges({
@@ -424,5 +444,21 @@ export default class TaskUpdateService {
       body: `${task.title}`,
       deep_link: taskLink
     })
+
+    for (const assigneeId of filtered) {
+      try {
+        const notif = await this.notifRepo.createNotification({
+          organizationId: project.organizationId,
+          userId: assigneeId,
+          type: 'TASK_ASSIGNED',
+          title: `${project.name} - Got a new task`,
+          body: `${task.title}`,
+          link: `/${project.organizationId}/project/${task.projectId}?mode=task&taskId=${task.id}`
+        })
+        pusherTrigger('team-collab', `notification-${assigneeId}`, notif)
+      } catch (err) {
+        console.error('Failed to create notification', err)
+      }
+    }
   }
 }

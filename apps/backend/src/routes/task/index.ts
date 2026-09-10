@@ -46,7 +46,7 @@ const logging = createModuleLog('ProjectTask')
 const taskReminderJob = new TaskReminderJob()
 const router = Router()
 
-router.use([authMiddleware, beProjectMemberMiddleware])
+router.use(['/project/task', '/project/tasks'], [authMiddleware, beProjectMemberMiddleware])
 
 // It means GET:/api/example
 router.get('/project/task', async (req: AuthRequest, res) => {

@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { Droppable } from 'react-beautiful-dnd'
+import StrictDroppable from '@/components/Dnd/StrictDroppable'
 import CalMonthTaskList from './CalMonthTaskList'
 import CalendarTaskCreate from './CalendarTaskCreate'
 import { useCalendarContext } from './context'
@@ -22,7 +22,7 @@ export default function CalMonthDay({ day }: ICalMonthDay) {
   isToday && classes.push('today')
 
   return (
-    <Droppable droppableId={day.toDateString()} type="date">
+    <StrictDroppable droppableId={day.toDateString()} type="date">
       {provided => (
         <div
           className={classes.join(' ')}
@@ -34,6 +34,6 @@ export default function CalMonthDay({ day }: ICalMonthDay) {
           <CalendarTaskCreate dueDate={day} />
         </div>
       )}
-    </Droppable>
+    </StrictDroppable>
   )
 }

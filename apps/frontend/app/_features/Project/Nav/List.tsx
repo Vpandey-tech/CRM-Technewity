@@ -9,6 +9,8 @@ import {
   HiOutlineCog6Tooth,
   HiOutlineServerStack,
   HiOutlineVideoCamera,
+  HiOutlineChatBubbleLeftRight,
+  HiOutlineSparkles
 } from 'react-icons/hi2'
 import { Button, Scrollbar } from '@ui-components'
 import { AiOutlinePlus } from 'react-icons/ai'
@@ -43,12 +45,12 @@ function ProjectNavListContainer({ orgName }: { orgName: string }) {
   const { push } = useRouter()
 
   const menus = [
-    // {
-    //   title: 'Back',
-    //   href: `/organization`,
-    //   icon: HiArrowLeft,
-    //   active: false
-    // },
+    {
+      title: 'Chat CRM',
+      href: `/${orgName}`,
+      icon: HiOutlineChatBubbleLeftRight,
+      active: pathname === `/${orgName}` || pathname === `/${orgName}/`
+    },
     {
       title: 'My works',
       href: `/${orgName}/my-works`,

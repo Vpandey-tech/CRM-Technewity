@@ -12,20 +12,19 @@ export const useGetStatusHandler = (projectId: string, cb?: () => void) => {
     localforage.setItem(key, data)
   }
   const fetchNCache = () => {
-    const statusController = new AbortController()
+    if (!projectId) return
 
     setStatusLoading(true)
-    projectStatusGet(projectId, statusController.signal)
+    projectStatusGet(projectId)
       .then(res => {
-        const { data, status } = res.data
+        const { data, status } = res.data || {}
 
-        if (status !== 200) {
-          addAllStatuses([])
-          localforage.removeItem(key)
+        if (status !== 200 || !data || !Array.isArray(data)) {
           return
         }
 
         const statuses = data as TaskStatus[]
+        console.log('useGetProjectStatus data:', statuses)
 
         // order must be ascending
         // unless re-ordering feature in setting/status and view/board will be error
@@ -38,15 +37,12 @@ export const useGetStatusHandler = (projectId: string, cb?: () => void) => {
         })
       })
       .catch(err => {
-        console.log(err)
+        console.error('get project status error:', err)
       })
       .finally(() => {
         setStatusLoading(false)
+        cb && cb()
       })
-
-    return {
-      controller: statusController
-    }
   }
 
   return {
@@ -55,24 +51,26 @@ export const useGetStatusHandler = (projectId: string, cb?: () => void) => {
 }
 
 export default function useGetProjectStatus() {
-  const { projectId } = useParams()
+  const params = useParams()
+  const projectId = (params?.projectId as string) || ''
   const { addAllStatuses } = useProjectStatusStore()
   const { fetchNCache } = useGetStatusHandler(projectId)
 
   const key = `PROJECT_STATUS_${projectId}`
 
   useEffect(() => {
+    if (!projectId) return
     localforage.getItem(key).then(val => {
-      if (val) {
+      if (val && Array.isArray(val) && val.length > 0) {
         addAllStatuses(val as TaskStatus[])
       }
-    })
-  }, [])
+    }).catch(() => {})
+  }, [projectId, key])
 
   useEffect(() => {
-    const { controller } = fetchNCache()
-    return () => {
-      controller.abort()
+    if (projectId) {
+      fetchNCache()
     }
   }, [projectId])
 }
+

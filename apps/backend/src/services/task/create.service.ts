@@ -3,6 +3,7 @@ import ActivityService from '../activity.service'
 import { CKEY, findNDelCaches, incrCache } from '../../lib/redis'
 import {
   ProjectSettingRepository,
+  NotificationRepository,
   mdProjectGet,
   mdTaskAdd,
   mdTaskStatusWithDoneType,
@@ -11,6 +12,7 @@ import {
 import { deleteTodoCounter } from '../todo.counter'
 import { genFrontendUrl } from '../../lib/url'
 import { notifyToWebUsers } from '../../lib/buzzer'
+import { pusherTrigger } from '../../lib/pusher-server'
 import InternalErrorException from '../../exceptions/InternalErrorException'
 
 import TaskReminderJob from '../../jobs/reminder.job'
@@ -20,11 +22,13 @@ export default class TaskCreateService {
   activityService: ActivityService
   taskReminderJob: TaskReminderJob
   projectSettingRepo: ProjectSettingRepository
+  notifRepo: NotificationRepository
   taskSyncJob: TaskPusherJob
 
   constructor() {
     this.activityService = new ActivityService()
     this.projectSettingRepo = new ProjectSettingRepository()
+    this.notifRepo = new NotificationRepository()
     this.taskReminderJob = new TaskReminderJob()
     this.taskSyncJob = new TaskPusherJob()
   }
@@ -77,10 +81,10 @@ export default class TaskCreateService {
           projectId,
           priority,
           taskStatusId: taskStatusId,
-          tagIds: [],
+          tagIds: (body as any).tagIds || [],
           visionId: visionId || null,
           parentTaskId: null,
-          taskPoint: null,
+          taskPoint: (body as any).taskPoint !== undefined ? (body as any).taskPoint : null,
           leadId: (body as any).leadId || null,
           createdVia: (body as any).createdVia || 'MANUAL',
           createdBy: uid,
@@ -211,5 +215,21 @@ export default class TaskCreateService {
       body: `${task.title}`,
       deep_link: taskLink
     })
+
+    for (const assigneeId of filtered) {
+      try {
+        const notif = await this.notifRepo.createNotification({
+          organizationId: project.organizationId,
+          userId: assigneeId,
+          type: 'TASK_CREATED',
+          title: `${project.name} - #new-task`,
+          body: `${task.title}`,
+          link: `/${project.organizationId}/project/${task.projectId}?mode=task&taskId=${task.id}`
+        })
+        pusherTrigger('team-collab', `notification-${assigneeId}`, notif)
+      } catch (err) {
+        console.error('Failed to create notification', err)
+      }
+    }
   }
 }

@@ -37,8 +37,9 @@ export abstract class BaseQueue {
   }
 
   registerQueue() {
+    const conn = typeof redis?.duplicate === 'function' ? redis.duplicate() : redis
     this.queue = new Queue(this.queueName, {
-      connection: redis
+      connection: conn
     })
     this.queue.on('error', err => {
       console.warn(`[BullMQ:Queue:${this.queueName}] Connection error:`, err.message)
@@ -50,6 +51,7 @@ export abstract class BaseQueue {
     const queueName = this.queueName
     const allJobNames = jobs.map(j => j.name).join(', ')
     const jobMap = this.jobMap
+    const conn = typeof redis?.duplicate === 'function' ? redis.duplicate() : redis
 
     this.worker = new Worker(
       queueName,
@@ -63,7 +65,7 @@ export abstract class BaseQueue {
           console.log(`the job ${name} is not matched to: ${allJobNames}`)
         }
       },
-      { connection: redis }
+      { connection: conn }
     )
 
     this.worker.on('error', err => {

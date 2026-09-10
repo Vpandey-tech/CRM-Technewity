@@ -20,7 +20,7 @@ export default function ProjectItem({
   const { selectProject } = useProjectStore(state => state)
   const createdAt = project.createdAt
   const createdAtString = createdAt ? dateFormat(new Date(createdAt), 'PP') : ''
-  const url = `${orgName}/project/${project.id}?mode=task`
+  const url = `/${orgName}/project/${project.id}?mode=${project.projectViewId || 'board'}`
 
   const onSelectProject = (id: string) => {
     selectProject(id)

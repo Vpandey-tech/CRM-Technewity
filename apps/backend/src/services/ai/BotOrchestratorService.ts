@@ -458,19 +458,30 @@ export class BotOrchestratorService {
         members: Array.from(memberMap.values())
       })
 
-      // Tag resolution: case-insensitive match against existing project tags
+      // Tag resolution: match against existing project tags or dynamically create them
       const matchedTagIds: string[] = []
       const unmatchedTags: string[] = []
       for (const rawTag of parsedModifiers.rawTags) {
         const matched = projectTags.find((t: any) => t.name.toLowerCase() === rawTag.toLowerCase())
         if (matched) {
           matchedTagIds.push(matched.id)
-        } else {
-          unmatchedTags.push(`#${rawTag}`)
+        } else if (isValidId(projectId)) {
+          try {
+            const createdTag = await pmClient.tag.create({
+              data: {
+                projectId,
+                name: rawTag,
+                color: '#6366f1'
+              }
+            })
+            matchedTagIds.push(createdTag.id)
+          } catch {
+            unmatchedTags.push(`#${rawTag}`)
+          }
         }
       }
 
-      // Single combined LLM structured call
+      // Single combined LLM structured call with robust heuristic fallback
       let aiResult: any
       try {
         aiResult = await parseTaskWithGemini({
@@ -479,26 +490,17 @@ export class BotOrchestratorService {
           memberNames
         })
       } catch (aiErr: any) {
-        console.error('[BotOrchestrator] AI parsing failed after retries:', aiErr?.message)
-        const failureReply = await this.chatRepo.createMessage({
-          organizationId,
-          projectId,
-          senderId: botUserId,
-          content: `<p>❌ <strong>Error:</strong> AI service temporarily unavailable. Please retry your request.</p>`,
-          mentionUserIds: [senderId],
-          fileIds: [],
-          commandType: (commandType || ChatCommandType.GENERAL) as any,
-          status: ChatMessageStatus.FAILED as any,
-          linkedTaskId: null,
-          errorMessage: aiErr?.message || 'AI parsing error',
-          isBotReply: true
-        })
-
-        pusherTrigger('team-collab', `chat-message-${projectId}`, failureReply)
-        await this.updateAndPushMessageStatus(projectId, chatMessageId, ChatMessageStatus.FAILED as any, {
-          errorMessage: aiErr?.message || 'AI parsing error'
-        })
-        return
+        console.warn('[BotOrchestrator] AI parsing warning, using robust heuristic fallback:', aiErr?.message)
+        const fallbackText = (parsedModifiers.cleanedText || plainText).trim()
+        const firstLine = fallbackText.split('\n')[0].replace(/^#+\s*/, '').trim()
+        const fallbackTitle = firstLine.slice(0, 80) || 'New Task'
+        aiResult = {
+          intent: (commandType || 'TASK') as TBotIntent,
+          title: fallbackTitle,
+          rephrased_description: fallbackText || fallbackTitle,
+          email_subject: fallbackTitle,
+          email_body: fallbackText || fallbackTitle
+        }
       }
 
       await this.aiUsageRepo.logUsage({
@@ -796,8 +798,6 @@ export class BotOrchestratorService {
     // In-app notifications & email dispatch
     const notifyTargetUserIds = Array.from(new Set([...effectiveAssignees, effectiveLeadId]))
     for (const targetUid of notifyTargetUserIds) {
-      if (targetUid === senderId) continue
-
       await this.notificationRepo.createNotification({
         organizationId,
         userId: targetUid,
