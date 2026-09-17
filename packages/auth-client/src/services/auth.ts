@@ -27,28 +27,25 @@ export const signin = ({
   return httpPost('/api/auth/sign-in', { email, password, provider, rememberMe })
     .then(res => {
       const { status, data } = res.data
-      const { headers } = res
 
-      console.log('headers', headers)
-      console.log(status)
-
-      if (status === 403) {
-        return Promise.reject('NOT_ACTIVE')
-      }
+      console.log('sign in response status:', status)
 
       if (status !== 200) {
+        // Handle error responses that came with HTTP 200 (legacy format)
+        if (status === 403) {
+          return Promise.reject('NOT_ACTIVE')
+        }
         return Promise.reject('INVALID_INFORMATION')
       }
 
-      const token = headers.authorization
-      const refreshToken = headers.refreshtoken
+      const token = res.headers.authorization
+      const refreshToken = res.headers.refreshtoken
 
       console.log('cache goalie token')
       saveGoalieToken(token, rememberMe)
       console.log('cache goalie refresh token')
       saveGoalieRefreshToken(refreshToken, rememberMe)
 
-      // const decodeJWT = decode(token) as GoalieUser
       const decodeRefreshToken = decode(refreshToken) as { exp: number }
 
       console.log('cache goalie user info')
@@ -58,7 +55,7 @@ export const signin = ({
           email: data.email,
           name: data.name,
           photo: data.photo,
-          exp: decodeRefreshToken.exp // it should be `refreshToken expired`
+          exp: decodeRefreshToken.exp
         },
         rememberMe
       )
@@ -67,7 +64,31 @@ export const signin = ({
     })
     .catch(error => {
       console.log('error signin', error)
-      return Promise.reject(error)
+
+      // Handle Axios HTTP error responses (400, 403, 500)
+      if (error?.response) {
+        const httpStatus = error.response.status
+        const errorData = error.response.data
+
+        if (httpStatus === 403 || errorData?.error === 'NOT_ACTIVE') {
+          return Promise.reject('NOT_ACTIVE')
+        }
+
+        if (httpStatus === 400 || errorData?.error === 'INVALID_CREDENTIALS') {
+          return Promise.reject('INVALID_CREDENTIALS')
+        }
+
+        if (httpStatus === 500 || errorData?.error === 'SERVER_ERROR') {
+          return Promise.reject('SERVER_ERROR')
+        }
+      }
+
+      // If error is already a string (from the .then() reject above), pass it through
+      if (typeof error === 'string') {
+        return Promise.reject(error)
+      }
+
+      return Promise.reject('UNKNOWN_ERROR')
     })
 }
 

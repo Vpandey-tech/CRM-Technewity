@@ -130,6 +130,15 @@ model OrganizationMembers {
   updatedBy      String?
 }
 
+model PendingInvitation {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  email          String
+  organizationId String   @db.ObjectId
+  role           OrganizationRole @default(MEMBER)
+  invitedBy      String   @db.ObjectId
+  createdAt      DateTime @default(now())
+}
+
 enum CounterType {
   TASK
   PROJECT

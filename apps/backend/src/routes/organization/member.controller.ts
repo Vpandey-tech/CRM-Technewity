@@ -6,7 +6,9 @@ import {
   mdOrgMemberGet,
   mdOrgMemberGetAll,
   mdOrgMemberSeach,
-  mdUserFindEmail
+  mdUserFindEmail,
+  mdPendingInvitationCreate,
+  mdPendingInvitationExists
 } from '@database'
 import {
   BaseController,
@@ -76,7 +78,22 @@ export class OrganizationMemberController extends BaseController {
     const foundUser = await mdUserFindEmail(email)
 
     if (!foundUser) {
-      // User has not registered an account yet - dispatch invitation email
+      // User has not registered an account yet
+      // Store the pending invitation so it can be auto-applied on signup
+      try {
+        const alreadyPending = await mdPendingInvitationExists(email, orgId)
+        if (!alreadyPending) {
+          await mdPendingInvitationCreate({
+            email,
+            organizationId: orgId,
+            invitedBy: uid
+          })
+        }
+      } catch (pendingErr) {
+        console.warn('Failed to store pending invitation:', pendingErr)
+      }
+
+      // Dispatch invitation email
       try {
         const signupLink = `${feGateway}sign-up`
         await sendEmail({

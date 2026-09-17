@@ -121,6 +121,11 @@ export default function SigninForm() {
           return
         }
 
+        if (err === 'SERVER_ERROR' || err === 'UNKNOWN_ERROR') {
+          messageError('Something went wrong on our end. Please try again in a moment.')
+          return
+        }
+
         messageError('Your email or password are invalid')
       })
       .finally(() => {

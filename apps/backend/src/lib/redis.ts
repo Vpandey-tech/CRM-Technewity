@@ -207,12 +207,18 @@ export const hset = async (key: CACHE_KEY, value: { [key: string]: any }) => {
   await redis.hset(genKey(key), value)
 }
 
-export const hgetAll = (key: CACHE_KEY) => {
-  const obj = redis.hgetall(genKey(key))
-  if (!Object.keys(obj).length) {
+export const hgetAll = async (key: CACHE_KEY) => {
+  try {
+    if (!connected) return null
+    const obj = await redis.hgetall(genKey(key))
+    if (!obj || !Object.keys(obj).length) {
+      return null
+    }
+    return obj
+  } catch (error) {
+    console.log('hgetAll error for key', genKey(key), error)
     return null
   }
-  return obj
 }
 
 export const hget = (key: CACHE_KEY, fieldName: string) => {

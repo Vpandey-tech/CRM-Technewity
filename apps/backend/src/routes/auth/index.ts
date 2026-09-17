@@ -1,5 +1,5 @@
-import { User, UserStatus } from '@prisma/client'
-import { mdUserAdd, mdUserFindEmail, mdUserUpdate } from '@database'
+import { User, UserStatus, InvitationStatus, OrganizationRole } from '@prisma/client'
+import { mdUserAdd, mdUserFindEmail, mdUserUpdate, mdOrgMemberAdd, mdPendingInvitationFindByEmail, mdPendingInvitationDeleteByEmail } from '@database'
 import { validateRegisterUser } from '@namviek/core/validation'
 import { Router } from 'express'
 import { sendVerifyEmail } from '../../lib/email'
@@ -78,7 +78,22 @@ router.post('/sign-in', async (req, res) => {
 
     res.json({ status: 200, data: user })
   } catch (error) {
-    res.json({ status: error.status, error })
+    console.log('Sign-in error:', error?.message || error, 'status:', error?.status)
+
+    const errorStatus = error?.status || 500
+    const errorMessage = error?.message || 'Internal server error'
+
+    // Use proper HTTP status codes for auth errors
+    if (errorStatus === 403) {
+      return res.status(403).json({ status: 403, error: 'NOT_ACTIVE', message: errorMessage })
+    }
+
+    if (errorStatus === 400) {
+      return res.status(400).json({ status: 400, error: 'INVALID_CREDENTIALS', message: errorMessage })
+    }
+
+    // Unexpected server errors
+    return res.status(500).json({ status: 500, error: 'SERVER_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -153,6 +168,20 @@ router.post('/sign-up', async (req, res) => {
     const resultData = data as User
     const hashedPwd = hashPassword(resultData.password)
 
+    // Check if user has any pending invitations from an existing org
+    let pendingInvites: any[] = []
+    try {
+      pendingInvites = (await mdPendingInvitationFindByEmail(resultData.email)) || []
+    } catch (inviteFetchErr) {
+      console.warn('Failed to query pending invitations:', inviteFetchErr)
+    }
+
+    const hasPendingInvites = pendingInvites.length > 0
+    // If invited by a workspace, activate immediately so they can collaborate without friction
+    const initialStatus = hasPendingInvites || isDevMode() || !isEmailVerificationEnabled()
+      ? UserStatus.ACTIVE
+      : UserStatus.INACTIVE
+
     const user = await mdUserAdd({
       email: resultData.email,
       password: hashedPwd,
@@ -161,8 +190,7 @@ router.post('/sign-up', async (req, res) => {
       country: null,
       bio: null,
       dob: null,
-      // status: isEmailVerificationEnabled() ? UserStatus.INACTIVE : UserStatus.ACTIVE,
-      status: isDevMode() ? UserStatus.ACTIVE : isEmailVerificationEnabled() ? UserStatus.INACTIVE : UserStatus.ACTIVE,
+      status: initialStatus,
       photo: null,
       settings: {},
       createdAt: new Date(),
@@ -171,16 +199,51 @@ router.post('/sign-up', async (req, res) => {
       updatedBy: null
     })
 
-    const token = generateVerifyToken({
-      email: resultData.email,
-      name: resultData.name
-    })
+    // Auto-add user to organizations from pending invitations
+    if (hasPendingInvites) {
+      console.log(`Found ${pendingInvites.length} pending invitation(s) for ${resultData.email}`)
+      for (const invite of pendingInvites) {
+        try {
+          await mdOrgMemberAdd({
+            organizationId: invite.organizationId,
+            uid: user.id,
+            status: InvitationStatus.ACCEPTED,
+            role: invite.role || OrganizationRole.MEMBER,
+            createdAt: new Date(),
+            createdBy: invite.invitedBy,
+            updatedAt: null,
+            updatedBy: null
+          })
+          console.log(`Auto-added ${resultData.email} to org ${invite.organizationId}`)
+        } catch (addErr) {
+          console.warn(`Failed to auto-add user to org ${invite.organizationId}:`, addErr)
+        }
+      }
+      // Clean up processed invitations
+      try {
+        await mdPendingInvitationDeleteByEmail(resultData.email)
+      } catch (delErr) {
+        console.warn('Failed to clean up pending invitations:', delErr)
+      }
+    }
 
-    await sendVerifyEmail({
-      userName: resultData.name,
-      email: resultData.email,
-      token: token
-    })
+    // Only send verification email if account is inactive and verification is enabled
+    if (initialStatus === UserStatus.INACTIVE && isEmailVerificationEnabled()) {
+      try {
+        const token = generateVerifyToken({
+          email: resultData.email,
+          name: resultData.name
+        })
+
+        await sendVerifyEmail({
+          userName: resultData.name,
+          email: resultData.email,
+          token: token
+        })
+      } catch (mailErr) {
+        console.warn('Failed to send verification email:', mailErr)
+      }
+    }
 
     user.password = null
     res.json({
